@@ -1,58 +1,76 @@
--- GUI de Música para Delta Executor
-local ScreenGui = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local TextBox = Instance.new("TextBox")
-local PlayButton = Instance.new("TextButton")
-local Titulo = Instance.new("TextLabel")
+-- Criação da GUI
+local player = game.Players.LocalPlayer
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
 
--- Propriedades da GUI
-ScreenGui.Name = "MusicGUI"
-ScreenGui.Parent = game.CoreGui
+-- Fundo da GUI
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 400, 0, 250)
+frame.Position = UDim2.new(0.5, -200, 0.5, -125)
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BackgroundTransparency = 0.5
+frame.Parent = screenGui
 
-Frame.Name = "Main"
-Frame.Parent = ScreenGui
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.Position = UDim2.new(0.4, 0, 0.3, 0)
-Frame.Size = UDim2.new(0, 250, 0, 150)
-Frame.Active = true
-Frame.Draggable = true
+-- Título da GUI
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 50)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.Text = "Player de Música"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.TextScaled = true
+title.Parent = frame
 
-Titulo.Parent = Frame
-Titulo.BackgroundTransparency = 1
-Titulo.Position = UDim2.new(0, 0, 0, 0)
-Titulo.Size = UDim2.new(1, 0, 0, 30)
-Titulo.Font = Enum.Font.GothamBold
-Titulo.Text = "Reprodutor de Música"
-Titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
-Titulo.TextSize = 18
+-- Caixa de texto para inserir o ID da música
+local musicIdBox = Instance.new("TextBox")
+musicIdBox.Size = UDim2.new(0.8, 0, 0, 50)
+musicIdBox.Position = UDim2.new(0.1, 0, 0.2, 0)
+musicIdBox.PlaceholderText = "Digite o ID da música"
+musicIdBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+musicIdBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+musicIdBox.TextScaled = true
+musicIdBox.Parent = frame
 
-TextBox.Parent = Frame
-TextBox.PlaceholderText = "Coloque o ID da música"
-TextBox.Position = UDim2.new(0.1, 0, 0.4, 0)
-TextBox.Size = UDim2.new(0.8, 0, 0, 30)
-TextBox.Font = Enum.Font.Gotham
-TextBox.Text = ""
-TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-TextBox.TextSize = 14
+-- Botão de Reproduzir Música
+local playButton = Instance.new("TextButton")
+playButton.Size = UDim2.new(0.8, 0, 0, 50)
+playButton.Position = UDim2.new(0.1, 0, 0.4, 0)
+playButton.Text = "Tocar Música"
+playButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+playButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+playButton.TextScaled = true
+playButton.Parent = frame
 
-PlayButton.Parent = Frame
-PlayButton.Text = "Tocar"
-PlayButton.Position = UDim2.new(0.3, 0, 0.7, 0)
-PlayButton.Size = UDim2.new(0.4, 0, 0, 30)
-PlayButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-PlayButton.Font = Enum.Font.GothamBold
-PlayButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-PlayButton.TextSize = 14
+-- Botão de Parar Música
+local stopButton = Instance.new("TextButton")
+stopButton.Size = UDim2.new(0.8, 0, 0, 50)
+stopButton.Position = UDim2.new(0.1, 0, 0.6, 0)
+stopButton.Text = "Parar Música"
+stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+stopButton.TextScaled = true
+stopButton.Parent = frame
 
--- Função para tocar música
-PlayButton.MouseButton1Click:Connect(function()
-    local id = TextBox.Text
-    if tonumber(id) then
-        local sound = Instance.new("Sound", game.Workspace)
-        sound.SoundId = "rbxassetid://"..id
-        sound.Volume = 1
-        sound:Play()
-    else
-        TextBox.Text = "ID inválido!"
+-- Variável para controlar o som
+local musicPlaying = nil
+
+-- Função para tocar a música
+playButton.MouseButton1Click:Connect(function()
+    local musicId = musicIdBox.Text
+    if musicId ~= "" and musicPlaying == nil then
+        -- Toca a música com o ID inserido
+        musicPlaying = Instance.new("Sound")
+        musicPlaying.SoundId = "rbxassetid://" .. musicId
+        musicPlaying.Parent = game.Workspace
+        musicPlaying:Play()
+    end
+end)
+
+-- Função para parar a música
+stopButton.MouseButton1Click:Connect(function()
+    if musicPlaying then
+        musicPlaying:Stop()
+        musicPlaying:Destroy()
+        musicPlaying = nil
     end
 end)
