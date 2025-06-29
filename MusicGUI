@@ -1,93 +1,290 @@
--- GUI de Música para Delta Executor
-local ScreenGui = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local TextBox = Instance.new("TextBox")
-local PlayButton = Instance.new("TextButton")
-local StopButton = Instance.new("TextButton")  -- Novo botão para parar a música
-local Titulo = Instance.new("TextLabel")
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local soundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
 
--- Propriedades da GUI
-ScreenGui.Name = "MusicGUI"
-ScreenGui.Parent = game.CoreGui
+-- Criar GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "MusicPlayerGui"
+gui.Parent = playerGui
 
-Frame.Name = "Main"
-Frame.Parent = ScreenGui
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.Position = UDim2.new(0.4, 0, 0.3, 0)
-Frame.Size = UDim2.new(0, 250, 0, 150)
-Frame.Active = true
-Frame.Draggable = true
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 350, 0, 340)
+frame.Position = UDim2.new(0.5, -175, 0.5, -170)
+frame.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+frame.BorderSizePixel = 0
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.ClipsDescendants = true
+frame.Name = "MainFrame"
 
-Titulo.Parent = Frame
-Titulo.BackgroundTransparency = 1
-Titulo.Position = UDim2.new(0, 0, 0, 0)
-Titulo.Size = UDim2.new(1, 0, 0, 30)
-Titulo.Font = Enum.Font.GothamBold
-Titulo.Text = "Reprodutor de Música"
-Titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
-Titulo.TextSize = 18
+local sound = Instance.new("Sound", soundService)
+sound.Volume = 0.5
+sound.Looped = false
 
-TextBox.Parent = Frame
-TextBox.PlaceholderText = "Coloque o ID da música"
-TextBox.Position = UDim2.new(0.1, 0, 0.4, 0)
-TextBox.Size = UDim2.new(0.8, 0, 0, 30)
-TextBox.Font = Enum.Font.Gotham
-TextBox.Text = ""
-TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-TextBox.TextSize = 14
+-- Playlist
+local playlist = {
+    {id = "1845497774", name = "Música 1"},
+    {id = "1838603587", name = "Música 2"},
+    {id = "142376088",  name = "Música 3"},
+}
 
-PlayButton.Parent = Frame
-PlayButton.Text = "Tocar"
-PlayButton.Position = UDim2.new(0.3, 0, 0.7, 0)
-PlayButton.Size = UDim2.new(0.4, 0, 0, 30)
-PlayButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-PlayButton.Font = Enum.Font.GothamBold
-PlayButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-PlayButton.TextSize = 14
+local currentIndex = 1
 
-StopButton.Parent = Frame  -- Configuração do novo botão de parar
-StopButton.Text = "Parar"
-StopButton.Position = UDim2.new(0.3, 0, 0.85, 0)
-StopButton.Size = UDim2.new(0.4, 0, 0, 30)
-StopButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
-StopButton.Font = Enum.Font.GothamBold
-StopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-StopButton.TextSize = 14
+-- Label música atual
+local trackLabel = Instance.new("TextLabel", frame)
+trackLabel.Size = UDim2.new(1, -20, 0, 30)
+trackLabel.Position = UDim2.new(0, 10, 0, 10)
+trackLabel.BackgroundTransparency = 1
+trackLabel.TextColor3 = Color3.new(1,1,1)
+trackLabel.TextScaled = true
+trackLabel.TextXAlignment = Enum.TextXAlignment.Left
+trackLabel.Text = "Música: " .. playlist[currentIndex].name
 
-local currentSound = nil  -- Variável para armazenar o som tocando
+-- TextBox para ID manual
+local idTextBox = Instance.new("TextBox", frame)
+idTextBox.Size = UDim2.new(0.7, 0, 0, 30)
+idTextBox.Position = UDim2.new(0, 10, 0, 50)
+idTextBox.PlaceholderText = "Cole o ID da música aqui"
+idTextBox.ClearTextOnFocus = false
+idTextBox.TextScaled = true
+idTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+idTextBox.TextColor3 = Color3.new(1, 1, 1)
+idTextBox.TextXAlignment = Enum.TextXAlignment.Left
 
--- Função para tocar música
-PlayButton.MouseButton1Click:Connect(function()
-    local id = TextBox.Text
+-- Botão para tocar ID manual
+local playIdButton = Instance.new("TextButton", frame)
+playIdButton.Size = UDim2.new(0.28, 0, 0, 30)
+playIdButton.Position = UDim2.new(0.72, 0, 0, 50)
+playIdButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+playIdButton.TextColor3 = Color3.new(1, 1, 1)
+playIdButton.TextScaled = true
+playIdButton.Text = "▶️ Tocar ID"
+
+-- Função para tocar música pelo ID manual
+local function playManualId(id)
     if tonumber(id) then
-        -- Cria o som e atribui o ID
-        local sound = Instance.new("Sound")
-        sound.SoundId = "rbxassetid://"..id
-        sound.Parent = game.Workspace
-        sound.Volume = 1
+        sound:Stop()
+        sound.SoundId = "rbxassetid://" .. id
         sound:Play()
-
-        -- Atribui o som atual à variável
-        currentSound = sound
-
-        -- Deleta o som após a reprodução (para liberar recursos)
-        sound.Ended:Connect(function()
-            sound:Destroy()
-            currentSound = nil  -- Limpa o som atual quando ele terminar
-        end)
-
-        -- Limpar a caixa de texto
-        TextBox.Text = ""
+        trackLabel.Text = "Tocando ID: " .. id
+        playPauseButton.Text = "⏸ Pause"
+        isPlaying = true
     else
-        TextBox.Text = "ID inválido!"
+        warn("ID inválido!")
+    end
+end
+
+playIdButton.MouseButton1Click:Connect(function()
+    local id = idTextBox.Text
+    if id and id ~= "" then
+        playManualId(id)
     end
 end)
 
--- Função para parar a música
-StopButton.MouseButton1Click:Connect(function()
-    if currentSound then
-        currentSound:Stop()  -- Para o som em reprodução
-        currentSound:Destroy()  -- Remove o som
-        currentSound = nil  -- Limpa a referência do som atual
+-- Play/Pause
+local playPauseButton = Instance.new("TextButton", frame)
+playPauseButton.Size = UDim2.new(0.3, -10, 0, 40)
+playPauseButton.Position = UDim2.new(0, 10, 0, 90)
+playPauseButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+playPauseButton.TextColor3 = Color3.new(1,1,1)
+playPauseButton.TextScaled = true
+playPauseButton.Text = "▶️ Play"
+local isPlaying = false
+playPauseButton.MouseButton1Click:Connect(function()
+    if isPlaying then
+        sound:Pause()
+        playPauseButton.Text = "▶️ Play"
+        isPlaying = false
+        savePreferences()
+    else
+        if sound.SoundId == "" then
+            playMusicAtIndex(currentIndex)
+        else
+            sound:Play()
+            playPauseButton.Text = "⏸ Pause"
+            isPlaying = true
+        end
+        savePreferences()
     end
+end)
+
+-- Stop
+local stopButton = Instance.new("TextButton", frame)
+stopButton.Size = UDim2.new(0.3, -10, 0, 40)
+stopButton.Position = UDim2.new(0.35, 5, 0, 90)
+stopButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+stopButton.TextColor3 = Color3.new(1,1,1)
+stopButton.TextScaled = true
+stopButton.Text = "⏹ Stop"
+stopButton.MouseButton1Click:Connect(function()
+    sound:Stop()
+    playPauseButton.Text = "▶️ Play"
+    isPlaying = false
+    savePreferences()
+end)
+
+-- Próxima música
+local nextButton = Instance.new("TextButton", frame)
+nextButton.Size = UDim2.new(0.3, -10, 0, 40)
+nextButton.Position = UDim2.new(0.7, 0, 0, 90)
+nextButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+nextButton.TextColor3 = Color3.new(1,1,1)
+nextButton.TextScaled = true
+nextButton.Text = "⏭ Próxima"
+nextButton.MouseButton1Click:Connect(function()
+    playMusicAtIndex(currentIndex + 1)
+end)
+
+-- Música anterior
+local prevButton = Instance.new("TextButton", frame)
+prevButton.Size = UDim2.new(0.3, -10, 0, 40)
+prevButton.Position = UDim2.new(0, 10, 0, 140)
+prevButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+prevButton.TextColor3 = Color3.new(1,1,1)
+prevButton.TextScaled = true
+prevButton.Text = "⏮ Anterior"
+prevButton.MouseButton1Click:Connect(function()
+    playMusicAtIndex(currentIndex - 1)
+end)
+
+-- Controle de volume
+local volumeLabel = Instance.new("TextLabel", frame)
+volumeLabel.Size = UDim2.new(0, 60, 0, 20)
+volumeLabel.Position = UDim2.new(0, 10, 0, 300)
+volumeLabel.BackgroundTransparency = 1
+volumeLabel.TextColor3 = Color3.new(1,1,1)
+volumeLabel.TextScaled = true
+volumeLabel.Text = "Volume"
+
+local volumeSliderFrame = Instance.new("Frame", frame)
+volumeSliderFrame.Size = UDim2.new(0, 200, 0, 20)
+volumeSliderFrame.Position = UDim2.new(0, 80, 0, 300)
+volumeSliderFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+volumeSliderFrame.BorderSizePixel = 0
+
+local volumeFill = Instance.new("Frame", volumeSliderFrame)
+volumeFill.Size = UDim2.new(sound.Volume, 0, 1, 0)
+volumeFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+volumeFill.BorderSizePixel = 0
+
+volumeSliderFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local relativeX = input.Position.X - volumeSliderFrame.AbsolutePosition.X
+        local newVolume = math.clamp(relativeX / volumeSliderFrame.AbsoluteSize.X, 0, 1)
+        sound.Volume = newVolume
+        volumeFill.Size = UDim2.new(newVolume, 0, 1, 0)
+        savePreferences()
+    end
+end)
+
+-- Equalizador visual (simulado)
+local equalizerFrame = Instance.new("Frame", frame)
+equalizerFrame.Size = UDim2.new(1, -20, 0, 40)
+equalizerFrame.Position = UDim2.new(0, 10, 0, 260)
+equalizerFrame.BackgroundTransparency = 1
+
+local bars = {}
+local numBars = 10
+local barWidth = (equalizerFrame.AbsoluteSize.X - (numBars - 1) * 4) / numBars
+
+for i = 1, numBars do
+    local bar = Instance.new("Frame", equalizerFrame)
+    bar.Size = UDim2.new(0, 10, 0, 10)
+    bar.Position = UDim2.new(0, (i - 1) * (barWidth + 4), 1, 0)
+    bar.AnchorPoint = Vector2.new(0, 1)
+    bar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    bar.BorderSizePixel = 0
+    bars[i] = bar
+end
+
+spawn(function()
+    while gui.Parent do
+        for i, bar in ipairs(bars) do
+            local height = math.random(5, 35) * sound.Volume
+            local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            local tween = TweenService:Create(bar, tweenInfo, {Size = UDim2.new(0, 10, 0, height)})
+            tween:Play()
+        end
+        wait(0.15)
+    end
+end)
+
+-- Lista de músicas visual clicável
+local playlistFrame = Instance.new("ScrollingFrame", frame)
+playlistFrame.Size = UDim2.new(0, 320, 0, 100)
+playlistFrame.Position = UDim2.new(0, 10, 0, 180)
+playlistFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+playlistFrame.BorderSizePixel = 0
+playlistFrame.CanvasSize = UDim2.new(0, 0, 0, #playlist * 30)
+playlistFrame.ScrollBarThickness = 6
+playlistFrame.Name = "PlaylistFrame"
+
+local function updatePlaylistUI()
+    playlistFrame:ClearAllChildren()
+    for i, song in ipairs(playlist) do
+        local songButton = Instance.new("TextButton", playlistFrame)
+        songButton.Size = UDim2.new(1, -10, 0, 25)
+        songButton.Position = UDim2.new(0, 5, 0, (i - 1) * 30)
+        songButton.BackgroundColor3 = (i == currentIndex) and Color3.fromRGB(0, 100, 180) or Color3.fromRGB(60, 60, 60)
+        songButton.TextColor3 = Color3.new(1, 1, 1)
+        songButton.TextScaled = true
+        songButton.Text = song.name
+        songButton.AutoButtonColor = true
+        songButton.MouseButton1Click:Connect(function()
+            playMusicAtIndex(i)
+        end)
+    end
+end
+
+updatePlaylistUI()
+
+-- Salvar preferências no LocalPlayer Attributes (persistência local simples)
+local function savePreferences()
+    player:SetAttribute("MusicPlayerVolume", sound.Volume)
+    player:SetAttribute("MusicPlayerIndex", currentIndex)
+    player:SetAttribute("MusicPlayerIsPlaying", isPlaying)
+end
+
+local function loadPreferences()
+    local vol = player:GetAttribute("MusicPlayerVolume")
+    local idx = player:GetAttribute("MusicPlayerIndex")
+    local playing = player:GetAttribute("MusicPlayerIsPlaying")
+
+    if vol and type(vol) == "number" then
+        sound.Volume = vol
+        volumeFill.Size = UDim2.new(vol, 0, 1, 0)
+    end
+
+    if idx and type(idx) == "number" and idx >= 1 and idx <= #playlist then
+        currentIndex = idx
+    end
+
+    if playing then
+        playMusicAtIndex(currentIndex)
+    else
+        trackLabel.Text = "Música: " .. playlist[currentIndex].name
+        isPlaying = false
+        playPauseButton.Text = "▶️ Play"
+    end
+end
+
+loadPreferences()
+
+-- Botão fechar
+local closeButton = Instance.new("TextButton", frame)
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+closeButton.TextColor3 = Color3.new(1,1,1)
+closeButton.TextScaled = true
+closeButton.Text = "✖"
+closeButton.AutoButtonColor = true
+closeButton.MouseButton1Click:Connect(function()
+    gui:Destroy()
+    sound:Stop()
+end)
+
+-- Avança música ao terminar
+sound.Ended:Connect(function()
+    playMusicAtIndex(currentIndex + 1)
 end)
